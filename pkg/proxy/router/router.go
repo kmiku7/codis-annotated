@@ -14,6 +14,7 @@ import (
 
 const MaxSlotNum = models.DEFAULT_SLOT_NUM
 
+// slots到redis-inst的映射(?)
 type Router struct {
 	mu sync.Mutex
 

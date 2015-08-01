@@ -10,6 +10,7 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// config.ini 可指定的配置项
 type Config struct {
 	proxyId     string
 	productName string

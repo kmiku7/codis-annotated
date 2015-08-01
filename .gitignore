@@ -4,6 +4,7 @@
 *.out
 *.dump
 *.log.*
+*.udb
 
 martini_log
 _workspace

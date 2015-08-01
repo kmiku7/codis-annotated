@@ -22,6 +22,7 @@ import (
 
 type Server struct {
 	conf   *Config
+	// zk?
 	topo   *Topology
 	info   models.ProxyInfo
 	groups map[int]int
@@ -37,6 +38,7 @@ type Server struct {
 	stop sync.Once
 }
 
+// debugVarAddr 指的http接口
 func New(addr string, debugVarAddr string, conf *Config) *Server {
 	log.Infof("create proxy with config: %+v", conf)
 
@@ -109,14 +111,20 @@ func (s *Server) handleConns() {
 	ch := make(chan net.Conn, 4096)
 	defer close(ch)
 
+	// accept & create session 为何要做一层 channel 交互?
+	// 感觉没有必要啊, 直接 new object & go object.serve() 不就结了 
 	go func() {
 		for c := range ch {
+			// 该函数原型
+			// func NewSessionSize(c net.Conn, auth string, bufsize int, timeout int) *Session
+			// Session 对应 RedisClient
 			x := router.NewSessionSize(c, s.conf.passwd, s.conf.maxBufSize, s.conf.maxTimeout)
 			go x.Serve(s.router, s.conf.maxPipeline)
 		}
 	}()
 
 	for {
+		// 对每个连接, 放入channel里处理
 		c, err := s.listener.Accept()
 		if err != nil {
 			return
@@ -180,6 +188,8 @@ func (s *Server) markOffline() {
 }
 
 func (s *Server) waitOnline() bool {
+	// 这里是循环等待变为online, 共有三个状态mark_offline/offline/online
+	// 见models/proxy.go
 	for {
 		info, err := s.topo.GetProxyInfo(s.info.Id)
 		if err != nil {
@@ -255,6 +265,7 @@ func (s *Server) fillSlot(i int) {
 		log.PanicErrorf(err, "get slot by index failed", i)
 	}
 
+	// 正在迁移过程中的话，slots-info保存的是新server-group，原group保存在from字段中。
 	var from string
 	var addr = groupMaster(*slotGroup)
 	if slotInfo.State.Status == models.SLOT_STATUS_MIGRATE {

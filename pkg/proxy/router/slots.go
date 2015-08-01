@@ -12,6 +12,7 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// 迁移过程中, 源redis-inst仅保存一个"ip:port"字符串, 没有分解出host/port
 type Slot struct {
 	id int
 

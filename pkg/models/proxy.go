@@ -22,6 +22,7 @@ const (
 	PROXY_STATE_MARK_OFFLINE = "mark_offline"
 )
 
+// 本proxy的信息
 type ProxyInfo struct {
 	Id           string `json:"id"`
 	Addr         string `json:"addr"`

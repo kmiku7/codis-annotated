@@ -1,6 +1,8 @@
 // Copyright 2014 Wandoujia Inc. All Rights Reserved.
 // Licensed under the MIT (MIT-LICENSE.txt) license.
 
+// main function of proxt module
+
 package main
 
 import (
@@ -17,6 +19,7 @@ import (
 	"syscall"
 
 	"github.com/docopt/docopt-go"
+	// 这个目录名叫gostats, 包名叫stats
 	"github.com/ngaut/gostats"
 
 	"github.com/wandoulabs/codis/pkg/proxy"
@@ -106,6 +109,7 @@ func checkUlimit(min int) {
 func main() {
 	fmt.Print(banner)
 
+	// 参数解析 & 设置
 	args, err := docopt.Parse(usage, nil, true, "codis proxy v0.1", true)
 	if err != nil {
 		fmt.Println(err)
@@ -181,6 +185,8 @@ func main() {
 	s := proxy.New(addr, httpAddr, conf)
 	defer s.Close()
 
+	// 这个stats是？
+	// "github.com/ngaut/gostats"
 	stats.PublishJSONFunc("router", func() string {
 		var m = make(map[string]interface{})
 		m["ops"] = router.OpCounts()

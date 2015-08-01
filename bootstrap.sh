@@ -13,6 +13,7 @@ if [ "$?" = 0 ]; then
     exit 0
 fi
 
+# 下载依赖
 go get -u github.com/alicebob/miniredis
 go get -u github.com/bsm/redeo
 go get -u github.com/c4pt0r/cfg
