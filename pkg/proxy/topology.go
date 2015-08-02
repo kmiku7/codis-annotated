@@ -26,19 +26,27 @@ type Topology struct {
 	ProductName      string
 	zkAddr           string
 	zkConn           zkhelper.Conn
+	// 这个字段用处不大， 构造函数会更具provider选择和是的工厂方法
 	fact             ZkFactory
 	provider         string
 	zkSessionTimeout int
 }
 
+// zk path:
+//	fmt.Sprintf("/zk/codis/db_%s/servers/group_%d", productName, groupId)
+//	这个信息是由用户更新进去,然后codis对实例进行设置
 func (top *Topology) GetGroup(groupId int) (*models.ServerGroup, error) {
 	return models.GetGroup(top.zkConn, top.ProductName, groupId)
 }
 
+// 纯判断, 跟业务无任何关系
 func (top *Topology) Exist(path string) (bool, error) {
 	return zkhelper.NodeExists(top.zkConn, path)
 }
 
+// zk path:
+//	fmt.Sprintf("/zk/codis/db_%s/slots/slot_%d", productName, slotId)
+// 这个接口确保了slot-id & group-id 都是有效的
 func (top *Topology) GetSlotByIndex(i int) (*models.Slot, *models.ServerGroup, error) {
 	slot, err := models.GetSlot(top.zkConn, top.ProductName, i)
 	if err != nil {

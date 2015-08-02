@@ -28,6 +28,7 @@ func NewDecoder(br *bufio.Reader) *Decoder {
 	return &Decoder{Reader: br}
 }
 
+// 这是bufio的size
 func NewDecoderSize(r io.Reader, size int) *Decoder {
 	br, ok := r.(*bufio.Reader)
 	if !ok {
@@ -61,10 +62,12 @@ func (d *Decoder) decodeResp(depth int) (*Resp, error) {
 		return nil, errors.Trace(err)
 	}
 	switch t := RespType(b); t {
+	// 这些的格式都是'Type-Char' + Contents + \r\n
 	case TypeString, TypeError, TypeInt:
 		r := &Resp{Type: t}
 		r.Value, err = d.decodeTextBytes()
 		return r, err
+	// 字符串类型
 	case TypeBulkBytes:
 		r := &Resp{Type: t}
 		r.Value, err = d.decodeBulkBytes()
@@ -80,13 +83,16 @@ func (d *Decoder) decodeResp(depth int) (*Resp, error) {
 		if err := d.UnreadByte(); err != nil {
 			return nil, errors.Trace(err)
 		}
+		// 简单协议, 映射到TypeArray
 		r := &Resp{Type: TypeArray}
 		r.Array, err = d.decodeSingleLineBulkBytesArray()
 		return r, err
 	}
 }
 
+// 一直读到\r\n
 func (d *Decoder) decodeTextBytes() ([]byte, error) {
+	// 包含分隔符
 	b, err := d.ReadBytes('\n')
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -149,6 +155,7 @@ func (d *Decoder) decodeArray(depth int) ([]*Resp, error) {
 		return nil, nil
 	}
 	a := make([]*Resp, n)
+	// 递归处理, 支持各种类型
 	for i := 0; i < len(a); i++ {
 		if a[i], err = d.decodeResp(depth + 1); err != nil {
 			return nil, err
@@ -157,6 +164,9 @@ func (d *Decoder) decodeArray(depth int) ([]*Resp, error) {
 	return a, nil
 }
 
+// 解析旧的通信协议(?)
+// 简单协议
+// 单行, 以\r\n结尾, 元素间以空格分割
 func (d *Decoder) decodeSingleLineBulkBytesArray() ([]*Resp, error) {
 	b, err := d.decodeTextBytes()
 	if err != nil {

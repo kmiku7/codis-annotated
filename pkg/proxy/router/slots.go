@@ -13,6 +13,7 @@ import (
 )
 
 // 迁移过程中, 源redis-inst仅保存一个"ip:port"字符串, 没有分解出host/port
+// 每个slot的请求都落到group-master上吗?
 type Slot struct {
 	id int
 
@@ -39,6 +40,8 @@ func (s *Slot) blockAndWait() {
 		s.lock.hold = true
 		s.lock.Lock()
 	}
+	// 如果没有add & done， 这里就不会block住？ 是的
+	// 可以重用
 	s.wait.Wait()
 }
 
@@ -78,11 +81,13 @@ func (s *Slot) prepare(r *Request, key []byte) (*SharedBackendConn, error) {
 		log.Infof("slot-%04d is not ready: key = %s", s.id, key)
 		return nil, ErrSlotIsNotReady
 	}
+	// 迁移过程中的处理流程
 	if err := s.slotsmgrt(r, key); err != nil {
 		log.Warnf("slot-%04d migrate from = %s to %s failed: key = %s, error = %s",
 			s.id, s.migrate.from, s.backend.addr, key, err)
 		return nil, err
 	} else {
+		// 正常的转发流程
 		r.slot = &s.wait
 		r.slot.Add(1)
 		return s.backend.bc, nil

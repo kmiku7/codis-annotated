@@ -1,0 +1,20 @@
+backend.go
+
+mapper.go
+
+request.go
+
+router.go
+
+session.go
+	对应一个redisClient connection
+
+slots.go
+
+stats.go
+
+
+------------------------------------
+
+
+Dispatcher 是一个 interface， 定义在request.go

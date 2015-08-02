@@ -22,6 +22,7 @@ const (
 )
 
 // redis server instance
+// 信息作为json保存在节点内
 type Server struct {
 	Type    string `json:"type"`
 	GroupId int    `json:"group_id"`
@@ -29,6 +30,7 @@ type Server struct {
 }
 
 // redis server group
+// 节点内没有保存任何信息, 信息都在路径名字内
 type ServerGroup struct {
 	Id          int       `json:"id"`
 	ProductName string    `json:"product_name"`

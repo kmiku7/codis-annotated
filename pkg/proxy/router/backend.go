@@ -16,6 +16,7 @@ import (
 type BackendConn struct {
 	addr string
 	auth string
+	// Do is intended for initialization that must be run exactly once.
 	stop sync.Once
 
 	input chan *Request
@@ -76,6 +77,8 @@ func (bc *BackendConn) KeepAlive() bool {
 	}
 
 	select {
+	// 每个请求放入input队列, 也就是proxy只与每个后端redis-inst保持一个连接?
+	// redis-inst的返回值如何与redis-client关联起来的呢?
 	case bc.input <- r:
 		return true
 	default:

@@ -13,6 +13,7 @@ import (
 type Conn struct {
 	Sock net.Conn
 
+	// 这两个超时时间的设置见 router/session.go, NewSessionSize()
 	ReaderTimeout time.Duration
 	WriterTimeout time.Duration
 
@@ -72,6 +73,7 @@ type connWriter struct {
 	hasDeadline bool
 }
 
+// 这里的 write/read 什么场景会用?
 func (w *connWriter) Write(b []byte) (int, error) {
 	if timeout := w.WriterTimeout; timeout != 0 {
 		if err := w.Sock.SetWriteDeadline(time.Now().Add(timeout)); err != nil {

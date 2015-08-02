@@ -18,6 +18,7 @@ var (
 )
 
 func init() {
+	// 这是做整数对象池??
 	itoamap = make([]string, 1024*128+1024)
 	itobmap = make([][]byte, len(itoamap))
 	for i := 0; i < len(itoamap); i++ {
@@ -26,8 +27,10 @@ func init() {
 	}
 }
 
+// 到底什么用途?
 func itoxIndex(i int64) int {
 	n := i + 1024
+	// 溢出检查
 	if i < n {
 		if n >= 0 && n < int64(len(itoamap)) {
 			return int(n)
@@ -36,6 +39,8 @@ func itoxIndex(i int64) int {
 	return -1
 }
 
+// 自己的itoa
+// 使用了对象池
 func itoa(i int64) string {
 	if n := itoxIndex(i); n >= 0 {
 		return itoamap[n]
@@ -60,6 +65,7 @@ func NewEncoder(bw *bufio.Writer) *Encoder {
 	return &Encoder{Writer: bw}
 }
 
+// size 是bufio的大小
 func NewEncoderSize(w io.Writer, size int) *Encoder {
 	bw, ok := w.(*bufio.Writer)
 	if !ok {
@@ -92,10 +98,12 @@ func EncodeToBytes(r *Resp) ([]byte, error) {
 	return b.Bytes(), err
 }
 
+// Resp::value本身不需要\r\n换行, 序列化函数自动补齐
 func (e *Encoder) encodeResp(r *Resp) error {
 	if err := e.WriteByte(byte(r.Type)); err != nil {
 		return errors.Trace(err)
 	}
+	// default 的位置任意.
 	switch r.Type {
 	default:
 		return errors.Errorf("bad resp type %s", r.Type)

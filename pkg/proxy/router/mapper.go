@@ -27,7 +27,9 @@ func init() {
 var (
 	blacklist = make(map[string]bool)
 )
-
+// 增加的指令
+// "SLOTSINFO", "SLOTSDEL", "SLOTSMGRTSLOT", "SLOTSMGRTONE", "SLOTSMGRTTAGSLOT", "SLOTSMGRTTAGONE", "SLOTSCHECK",
+// proxy完成功能?
 func init() {
 	for _, s := range []string{
 		"KEYS", "MOVE", "OBJECT", "RENAME", "RENAMENX", "SCAN", "BITOP", "MSETNX", "MIGRATE", "RESTORE",
@@ -50,10 +52,13 @@ var (
 	ErrBadOpStrLen = errors.New("bad command length, too short or too long")
 )
 
+// 可以认为是 Request 应该遵守的规则(?)
 func getOpStr(resp *redis.Resp) (string, error) {
+	// 简单协议已经映射到TypeArray了
 	if !resp.IsArray() || len(resp.Array) == 0 {
 		return "", ErrBadRespType
 	}
+	// 确保每个元素都是 string 类型
 	for _, r := range resp.Array {
 		if r.IsBulkBytes() {
 			continue
@@ -67,6 +72,7 @@ func getOpStr(resp *redis.Resp) (string, error) {
 	if len(op) == 0 || len(op) > len(upper) {
 		return "", ErrBadOpStrLen
 	}
+	// 这是要整啥..
 	for i := 0; i < len(op); i++ {
 		c := uint8(op[i])
 		if k := int(c); k < len(charmap) {
@@ -91,6 +97,9 @@ func hashSlot(key []byte) int {
 	return int(crc32.ChecksumIEEE(key) % MaxSlotNum)
 }
 
+// 这里提到的key分组的问题！
+// 这些指定都是对多个key进行逻辑运算返回一个结果, codis把指令路由到第一个key对应的机器上, 
+//		其他key存不存在这台机器就不管了, 应该是有用户自己解决
 func getHashKey(resp *redis.Resp, opstr string) []byte {
 	var index = 1
 	switch opstr {

@@ -25,6 +25,7 @@ type Server struct {
 	// zk?
 	topo   *Topology
 	info   models.ProxyInfo
+	// map[slot-id] = group-id
 	groups map[int]int
 
 	lastActionSeq int
@@ -33,6 +34,7 @@ type Server struct {
 	router   *router.Router
 	listener net.Listener
 
+	// mark offline 的信号
 	kill chan interface{}
 	wait sync.WaitGroup
 	stop sync.Once
@@ -73,6 +75,7 @@ func New(addr string, debugVarAddr string, conf *Config) *Server {
 	} else {
 		s.listener = l
 	}
+	// 这里仅是初始化信息， 没有从zk加载slots信息
 	s.router = router.NewWithAuth(conf.passwd)
 	s.evtbus = make(chan interface{}, 1024)
 
@@ -89,6 +92,7 @@ func New(addr string, debugVarAddr string, conf *Config) *Server {
 func (s *Server) serve() {
 	defer s.close()
 
+	// waitOnline是阻塞函数, 等待直到变成online状态
 	if !s.waitOnline() {
 		return
 	}
@@ -101,9 +105,11 @@ func (s *Server) serve() {
 
 	go func() {
 		defer s.close()
+		// 处理accept事件, 每个连接有独立的goroutine处理
 		s.handleConns()
 	}()
 
+	// 这里处理的事件是?
 	s.loopEvents()
 }
 
@@ -165,6 +171,7 @@ func (s *Server) rewatchProxy() {
 	}
 }
 
+// 监控 actions目录子节点的变化
 func (s *Server) rewatchNodes() []string {
 	nodes, err := s.topo.WatchChildren(models.GetWatchActionPath(s.topo.ProductName), s.evtbus)
 	if err != nil {
@@ -174,9 +181,13 @@ func (s *Server) rewatchNodes() []string {
 }
 
 func (s *Server) register() {
+	// 在zk注册proxy的临时节点
 	if _, err := s.topo.CreateProxyInfo(&s.info); err != nil {
 		log.PanicErrorf(err, "create proxy node failed")
 	}
+	// 创建节点对应的fence目录, demo:
+	//	/zk/codis/db_test/fence/workstation-centos-7.kmiku7.com:19000
+	// 什么用途?
 	if _, err := s.topo.CreateProxyFenceNode(&s.info); err != nil {
 		log.PanicErrorf(err, "create fence node failed")
 	}
@@ -425,9 +436,12 @@ func (s *Server) loopEvents() {
 	var tick int = 0
 	for s.info.State == models.PROXY_STATE_ONLINE {
 		select {
+		// offline 事件
 		case <-s.kill:
 			log.Infof("mark offline, proxy is killed: %s", s.info.Id)
 			s.markOffline()
+		// zk 事件
+		// 仅仅是为了序列化吗?
 		case e := <-s.evtbus:
 			evtPath := getEventPath(e)
 			log.Infof("got event %s, %v, lastActionSeq %d", s.info.Id, e, s.lastActionSeq)
@@ -443,6 +457,8 @@ func (s *Server) loopEvents() {
 				}
 			}
 			s.processAction(e)
+		// 定时时间, 探活(?)
+		// 探活粒度是秒
 		case <-ticker.C:
 			if maxTick := s.conf.pingPeriod; maxTick != 0 {
 				if tick++; tick >= maxTick {

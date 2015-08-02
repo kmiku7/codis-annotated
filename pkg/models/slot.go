@@ -38,10 +38,13 @@ type SlotMultiSetParam struct {
 
 type SlotState struct {
 	Status        SlotStatus        `json:"status"`
+	// 这个字段只有Status处于migrage/pre_migrate才有效(?)
 	MigrateStatus SlotMigrateStatus `json:"migrate_status"`
 	LastOpTs      string            `json:"last_op_ts"` // operation timestamp
 }
 
+// demo json:
+//	{"product_name":"test","id":0,"group_id":1,"state":{"status":"online","migrate_status":{"from":-1,"to":-1},"last_op_ts":"0"}}
 type Slot struct {
 	ProductName string    `json:"product_name"`
 	Id          int       `json:"id"`

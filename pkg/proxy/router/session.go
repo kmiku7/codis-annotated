@@ -23,7 +23,9 @@ type Session struct {
 
 	Ops int64
 
+	// 上一条指令开始处理的时间
 	LastOpUnix int64
+	// 连接建立的时间
 	CreateUnix int64
 
 	auth       string
@@ -35,6 +37,7 @@ type Session struct {
 }
 
 func (s *Session) String() string {
+	// 匿名结构体..
 	o := &struct {
 		Ops        int64  `json:"ops"`
 		LastOpUnix int64  `json:"lastop"`
@@ -55,6 +58,8 @@ func NewSession(c net.Conn, auth string) *Session {
 func NewSessionSize(c net.Conn, auth string, bufsize int, timeout int) *Session {
 	s := &Session{CreateUnix: time.Now().Unix(), auth: auth}
 	s.Conn = redis.NewConnSize(c, bufsize)
+	// 注意这里超时时间的设置
+	// 写超时固定的30s, 读超时可配(配置里是1800秒), 即 client-connection 可以空闲这么久.
 	s.Conn.ReaderTimeout = time.Second * time.Duration(timeout)
 	s.Conn.WriterTimeout = time.Second * 30
 	log.Infof("session [%p] create: %s", s, s)
@@ -71,6 +76,7 @@ func (s *Session) IsClosed() bool {
 	return s.closed.Get()
 }
 
+// 每个 client session 的伺服goroutine
 func (s *Session) Serve(d Dispatcher, maxPipeline int) {
 	var errlist errors.ErrorList
 	defer func() {
@@ -88,12 +94,15 @@ func (s *Session) Serve(d Dispatcher, maxPipeline int) {
 			for _ = range tasks {
 			}
 		}()
+		// 新建一个 goroutine 循环.
 		if err := s.loopWriter(tasks); err != nil {
 			errlist.PushBack(err)
 		}
 	}()
 
 	defer close(tasks)
+	// 在 goroutine 本身循环.
+	// 拿到inst给的结果, 然后写到task里
 	if err := s.loopReader(tasks, d); err != nil {
 		errlist.PushBack(err)
 	}
@@ -108,6 +117,7 @@ func (s *Session) loopReader(tasks chan<- *Request, d Dispatcher) error {
 		if err != nil {
 			return err
 		}
+		// 这是一个同步接口
 		r, err := s.handleRequest(resp, d)
 		if err != nil {
 			return err
@@ -129,6 +139,7 @@ func (s *Session) loopWriter(tasks <-chan *Request) error {
 		if err != nil {
 			return err
 		}
+		// 这个对象嵌入的啊!!!
 		if err := p.Encode(resp, len(tasks) == 0); err != nil {
 			return err
 		}
@@ -152,11 +163,14 @@ func (s *Session) handleResponse(r *Request) (*redis.Resp, error) {
 	if resp == nil {
 		return nil, ErrRespIsRequired
 	}
+	// 统计
 	incrOpStats(r.OpStr, microseconds()-r.Start)
 	return resp, nil
 }
 
 func (s *Session) handleRequest(resp *redis.Resp, d Dispatcher) (*Request, error) {
+	// 定义在 mapper.go
+	// 怎么处理简单协议的?
 	opstr, err := getOpStr(resp)
 	if err != nil {
 		return nil, err
@@ -204,6 +218,7 @@ func (s *Session) handleRequest(resp *redis.Resp, d Dispatcher) (*Request, error
 	case "DEL":
 		return s.handleRequestMDel(r, d)
 	}
+	// 这条指令是同步的吧
 	return r, d.Dispatch(r)
 }
 

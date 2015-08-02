@@ -14,7 +14,7 @@ import (
 
 const MaxSlotNum = models.DEFAULT_SLOT_NUM
 
-// slots到redis-inst的映射(?)
+// slot-id -> slot-object
 type Router struct {
 	mu sync.Mutex
 
@@ -88,6 +88,7 @@ func (s *Router) KeepAlive() error {
 	return nil
 }
 
+// 这里应改写了r变量里的字段
 func (s *Router) Dispatch(r *Request) error {
 	hkey := getHashKey(r.Resp, r.OpStr)
 	slot := s.slots[hashSlot(hkey)]
@@ -130,16 +131,20 @@ func (s *Router) resetSlot(i int) {
 }
 
 func (s *Router) fillSlot(i int, addr, from string, lock bool) {
+	// 仅仅是取值范围的验证
 	if !s.isValidSlot(i) {
 		return
 	}
 	slot := s.slots[i]
 	slot.blockAndWait()
 
+	// 从 Router::pool 里删除slot里的连接
+	// 这几句resetslot, 仅保留id字段
 	s.putBackendConn(slot.backend.bc)
 	s.putBackendConn(slot.migrate.bc)
 	slot.reset()
 
+	// 这里填充slot结构体
 	if len(addr) != 0 {
 		xx := strings.Split(addr, ":")
 		if len(xx) >= 1 {
@@ -149,6 +154,7 @@ func (s *Router) fillSlot(i int, addr, from string, lock bool) {
 			slot.backend.port = []byte(xx[1])
 		}
 		slot.backend.addr = addr
+		// 不存在则会新建, 否则复用之
 		slot.backend.bc = s.getBackendConn(addr)
 	}
 	if len(from) != 0 {

@@ -1,3 +1,9 @@
-连接抽象
-redis协议编解码
-redis请求抽象
+conn.go
+网络连接抽象, 提供了两个可支持超时的读写函数
+用于redisClient
+
+decoder.go encoder.go
+redis协议编解码, 解码支持简单协议
+
+resp.go
+redis请求抽象, 提供了特化的构造函数, 解析后的请求.

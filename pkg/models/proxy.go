@@ -23,7 +23,20 @@ const (
 )
 
 // 本proxy的信息
+// json demo:
+//	{
+//		"id":"proxy_1",
+//		"addr":"workstation-centos-7.kmiku7.com:19000",
+//		"last_event":"",
+//		"last_event_ts":0,
+//		"state":"online",
+//		"description":"",
+//		"debug_var_addr":"workstation-centos-7.kmiku7.com:11000",
+//		"pid":17618,
+//		"start_at":"2015-08-01 22:10:54.608791733 +0800 CST"
+//	}
 type ProxyInfo struct {
+	// proxy name
 	Id           string `json:"id"`
 	Addr         string `json:"addr"`
 	LastEvent    string `json:"last_event"`

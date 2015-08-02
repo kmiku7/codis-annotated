@@ -53,6 +53,8 @@ func GetActionResponsePath(productName string) string {
 
 func GetActionWithSeq(zkConn zkhelper.Conn, productName string, seq int64, provider string) (*Action, error) {
 	var act Action
+	// Seq2Str:
+	//	fmt.Sprintf("%0.10d", seq)
 	data, _, err := zkConn.Get(path.Join(GetWatchActionPath(productName), zkConn.Seq2Str(seq)))
 	if err != nil {
 		return nil, errors.Trace(err)
