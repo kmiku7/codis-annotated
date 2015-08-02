@@ -28,6 +28,7 @@ type Slot struct {
 		bc   *SharedBackendConn
 	}
 
+	// 这个 wg 什么用途?
 	wait sync.WaitGroup
 	lock struct {
 		hold bool
@@ -35,6 +36,8 @@ type Slot struct {
 	}
 }
 
+// 这个函数在 router 的 resetSlot()/fillSlot() 进行了调用, 对应的场景是更改slot对应的group,
+// 因此在修改前需要调用这个函数, 确保没有访问当前后端的请求.
 func (s *Slot) blockAndWait() {
 	if !s.lock.hold {
 		s.lock.hold = true

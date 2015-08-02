@@ -104,6 +104,7 @@ func GetGroup(zkConn zkhelper.Conn, productName string, groupId int) (*ServerGro
 	return group, nil
 }
 
+// 先拿到groups列表, 然后循环处理每个group, 每个group先读group信息, 在读取对应的server信息.
 func ServerGroups(zkConn zkhelper.Conn, productName string) ([]*ServerGroup, error) {
 	var ret []*ServerGroup
 	root := fmt.Sprintf("/zk/codis/db_%s/servers", productName)
@@ -151,6 +152,7 @@ func (self *ServerGroup) Remove(zkConn zkhelper.Conn) error {
 		return errors.Trace(err)
 	}
 
+	// 这里需要检查是否有迁移状态的slots吧?
 	for _, slot := range slots {
 		if slot.GroupId == self.Id {
 			return errors.Errorf("group %d is using by slot %d", slot.GroupId, slot.Id)
@@ -227,6 +229,8 @@ func (self *ServerGroup) Promote(conn zkhelper.Conn, addr, passwd string) error 
 		return errors.Trace(err)
 	}
 
+	// AddServer() 可以看作一个UpdateServer() 接口
+
 	// old master may be nil
 	if master != nil {
 		master.Type = SERVER_TYPE_OFFLINE
@@ -290,6 +294,7 @@ func (self *ServerGroup) AddServer(zkConn zkhelper.Conn, s *Server, passwd strin
 		}
 	}
 
+	// 已经存在 master 的情况下不能继续添加master
 	// make sure there is only one master
 	if s.Type == SERVER_TYPE_MASTER && len(masterAddr) > 0 {
 		return errors.Trace(ErrNodeExists)
@@ -316,6 +321,7 @@ func (self *ServerGroup) AddServer(zkConn zkhelper.Conn, s *Server, passwd strin
 	self.Servers = servers
 
 	if s.Type == SERVER_TYPE_MASTER {
+		// action 如何触发? 如何执行?
 		err = NewAction(zkConn, self.ProductName, ACTION_TYPE_SERVER_GROUP_CHANGED, self, "", true)
 		if err != nil {
 			return errors.Trace(err)

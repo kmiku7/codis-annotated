@@ -24,14 +24,17 @@ type Request struct {
 	Resp *redis.Resp
 
 	Coalesce func() error
-	// 回复?
+	// 处理结果
 	Response struct {
 		Resp *redis.Resp
 		Err  error
 	}
 
 	// 这两个的区别?
+	// future锁, writer 使用 r.Wait.Wait() 等待处理的结束.
+	// 对象构造的时候会初始化, 见session.go handleRequest()
 	Wait *sync.WaitGroup
+	// 这个是？
 	slot *sync.WaitGroup
 
 	Failed *atomic2.Bool

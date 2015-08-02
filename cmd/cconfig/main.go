@@ -84,6 +84,7 @@ func runCommand(cmd string, args []string) (err error) {
 		return errors.Trace(cmdDashboard(argv))
 	case "server":
 		return errors.Trace(cmdServer(argv))
+	// proxy 相关操作
 	case "proxy":
 		return errors.Trace(cmdProxy(argv))
 	case "slot":

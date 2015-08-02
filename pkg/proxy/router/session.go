@@ -76,7 +76,7 @@ func (s *Session) IsClosed() bool {
 	return s.closed.Get()
 }
 
-// 每个 client session 的伺服goroutine
+// 每个 client session 的伺服, goroutine
 func (s *Session) Serve(d Dispatcher, maxPipeline int) {
 	var errlist errors.ErrorList
 	defer func() {
@@ -95,6 +95,7 @@ func (s *Session) Serve(d Dispatcher, maxPipeline int) {
 			}
 		}()
 		// 新建一个 goroutine 循环.
+		// 从 task 读出数据然后处理
 		if err := s.loopWriter(tasks); err != nil {
 			errlist.PushBack(err)
 		}
@@ -118,6 +119,7 @@ func (s *Session) loopReader(tasks chan<- *Request, d Dispatcher) error {
 			return err
 		}
 		// 这是一个同步接口
+		// handleRequest: redis.Resp -> Request
 		r, err := s.handleRequest(resp, d)
 		if err != nil {
 			return err

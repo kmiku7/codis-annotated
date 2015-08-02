@@ -168,6 +168,7 @@ func SetProxyStatus(zkConn zkhelper.Conn, productName string, proxyName string, 
 	}
 
 	// check slot status before setting proxy online
+	// 设置任意一台 proxy online 接受请求前， 都要确保slots & groups 都初始化并匹配好了。
 	if status == PROXY_STATE_ONLINE {
 		slots, err := Slots(zkConn, productName)
 		if err != nil {

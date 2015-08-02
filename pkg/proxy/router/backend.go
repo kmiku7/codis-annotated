@@ -34,10 +34,13 @@ func NewBackendConn(addr, auth string) *BackendConn {
 func (bc *BackendConn) Run() {
 	log.Infof("backend conn [%p] to %s, start service", bc, bc.addr)
 	for k := 0; ; k++ {
+		// 逻辑处理函数
+		// 本身不包含loop
 		err := bc.loopWriter()
 		if err == nil {
 			break
 		} else {
+			// 这是在 connection 出异常的时候, 直接返回错误.
 			for i := len(bc.input); i != 0; i-- {
 				r := <-bc.input
 				bc.setResponse(r, nil, err)
@@ -102,6 +105,7 @@ func (bc *BackendConn) loopWriter() error {
 			MaxBuffered: 64,
 			MaxInterval: 300,
 		}
+		// 这里有个for-loop ...
 		for ok {
 			var flush = len(bc.input) == 0
 			if bc.canForward(r) {
@@ -123,6 +127,8 @@ func (bc *BackendConn) loopWriter() error {
 }
 
 func (bc *BackendConn) newBackendReader() (*redis.Conn, chan<- *Request, error) {
+	// 短连接????
+	// 不是这里决定的, 这里抽象的连接建立功能
 	c, err := redis.DialTimeout(bc.addr, 1024*512, time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -184,6 +190,7 @@ func (bc *BackendConn) canForward(r *Request) bool {
 	}
 }
 
+// 释放锁
 func (bc *BackendConn) setResponse(r *Request, resp *redis.Resp, err error) error {
 	r.Response.Resp, r.Response.Err = resp, err
 	if err != nil && r.Failed != nil {

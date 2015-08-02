@@ -12,6 +12,7 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// 都是转成对应 http api 调用
 func cmdProxy(argv []string) (err error) {
 	usage := `usage:
 	codis-config proxy list

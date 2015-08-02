@@ -305,6 +305,7 @@ func apiAddServerGroup(newGroup models.ServerGroup) (int, string) {
 }
 
 // add redis server to exist server group
+// 有检查 string 类型的 Type 字段?
 func apiAddServerToGroup(server models.Server, param martini.Params) (int, string) {
 	groupId, _ := strconv.Atoi(param["id"])
 	lock := utils.GetZkLock(safeZkConn, globalEnv.ProductName())

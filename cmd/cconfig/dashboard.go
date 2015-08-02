@@ -210,9 +210,12 @@ func runDashboard(addr string, httpLogFile string) {
 	m.Post("/api/slots/init", apiInitSlots)
 	m.Get("/api/slots", apiGetSlots)
 	m.Post("/api/slot", binding.Json(RangeSetTask{}), apiSlotRangeSet)
+
+	// codis-config proxt list/offline/online
 	m.Get("/api/proxy/list", apiGetProxyList)
-	m.Get("/api/proxy/debug/vars", apiGetProxyDebugVars)
 	m.Post("/api/proxy", binding.Json(models.ProxyInfo{}), apiSetProxyStatus)
+	
+	m.Get("/api/proxy/debug/vars", apiGetProxyDebugVars)
 
 	m.Get("/api/action/gc", apiActionGC)
 	m.Get("/api/force_remove_locks", apiForceRemoveLocks)
