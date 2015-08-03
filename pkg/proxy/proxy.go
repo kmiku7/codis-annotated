@@ -30,6 +30,7 @@ type Server struct {
 
 	lastActionSeq int
 
+	// zk actions 目录变化事件
 	evtbus   chan interface{}
 	router   *router.Router
 	listener net.Listener
@@ -97,6 +98,7 @@ func (s *Server) serve() {
 		return
 	}
 
+	// 监控actions事件
 	s.rewatchNodes()
 
 	for i := 0; i < router.MaxSlotNum; i++ {
@@ -119,6 +121,7 @@ func (s *Server) handleConns() {
 
 	// accept & create session 为何要做一层 channel 交互?
 	// 感觉没有必要啊, 直接 new object & go object.serve() 不就结了 
+	// 这里还是起goroutine, 看起来accpet快了, 这里go的不够快还是会堵.
 	go func() {
 		for c := range ch {
 			// 该函数原型
@@ -172,6 +175,7 @@ func (s *Server) rewatchProxy() {
 }
 
 // 监控 actions目录子节点的变化
+// fmt.Sprintf("/zk/codis/db_%s/actions", productName)
 func (s *Server) rewatchNodes() []string {
 	nodes, err := s.topo.WatchChildren(models.GetWatchActionPath(s.topo.ProductName), s.evtbus)
 	if err != nil {
@@ -209,6 +213,7 @@ func (s *Server) waitOnline() bool {
 		switch info.State {
 		case models.PROXY_STATE_MARK_OFFLINE:
 			log.Infof("mark offline, proxy got offline event: %s", s.info.Id)
+			// offline到底是要变成什么样的状态?
 			s.markOffline()
 			return false
 		case models.PROXY_STATE_ONLINE:
@@ -238,11 +243,13 @@ func needResponse(receivers []string, self models.ProxyInfo) bool {
 	for _, v := range receivers {
 		err := json.Unmarshal([]byte(v), &info)
 		if err != nil {
+			// 出错的情况下, 可能就是保存了 proxy-id 而已
 			if v == self.Id {
 				return true
 			}
 			return false
 		}
+		// 解析成功
 		if info.Id == self.Id && info.Pid == self.Pid && info.StartAt == self.StartAt {
 			return true
 		}
@@ -295,6 +302,7 @@ func (s *Server) fillSlot(i int) {
 		slotInfo.State.Status == models.SLOT_STATUS_PRE_MIGRATE)
 }
 
+// 设为offline则在proxy映射关系里移除
 func (s *Server) onSlotRangeChange(param *models.SlotMultiSetParam) {
 	log.Infof("slotRangeChange %+v", param)
 	for i := param.From; i <= param.To; i++ {
@@ -326,6 +334,7 @@ func (s *Server) responseAction(seq int64) {
 	}
 }
 
+// 这个技巧怎么说呢... 写个注释文档之类的行不
 func (s *Server) getActionObject(seq int, target interface{}) {
 	act := &models.Action{Target: target}
 	err := s.topo.GetActionWithSeqObject(int64(seq), act)
@@ -335,12 +344,16 @@ func (s *Server) getActionObject(seq int, target interface{}) {
 	log.Infof("action %+v", act)
 }
 
+// 可能处理的各种指令
 func (s *Server) checkAndDoTopoChange(seq int) bool {
+	// 这里是要拿 action 里存储的 data 的
 	act, err := s.topo.GetActionWithSeq(int64(seq))
 	if err != nil { //todo: error is not "not exist"
 		log.PanicErrorf(err, "action failed, seq = %d", seq)
 	}
 
+	// <del>判断 receiver 里是否有自己.</del>
+	// 判断是不是发给自己的
 	if !needResponse(act.Receivers, s.info) { //no need to response
 		return false
 	}
@@ -350,19 +363,28 @@ func (s *Server) checkAndDoTopoChange(seq int) bool {
 	switch act.Type {
 	case models.ACTION_TYPE_SLOT_MIGRATE, models.ACTION_TYPE_SLOT_CHANGED,
 		models.ACTION_TYPE_SLOT_PREMIGRATE:
+		// slot 迁移
 		slot := &models.Slot{}
+		// 这里是拿要迁移的 slot-id
 		s.getActionObject(seq, slot)
+		// 迁移详细信息在  /zk/path/to/slot-id 里保存了， 再取一次
+		// 本机拿到了迁移的信息, 接下来怎么处理? 哪里驱动以key为粒度的迁移行为?
 		s.fillSlot(slot.Id)
+
 	case models.ACTION_TYPE_SERVER_GROUP_CHANGED:
 		serverGroup := &models.ServerGroup{}
 		s.getActionObject(seq, serverGroup)
 		s.onGroupChange(serverGroup.Id)
+
 	case models.ACTION_TYPE_SERVER_GROUP_REMOVE:
-	//do not care
+		//do not care
+
 	case models.ACTION_TYPE_MULTI_SLOT_CHANGED:
+		// 见 pkg/models/slot.go SetSlotRange()
 		param := &models.SlotMultiSetParam{}
 		s.getActionObject(seq, param)
 		s.onSlotRangeChange(param)
+
 	default:
 		log.Panicf("unknown action %+v", act)
 	}
@@ -370,6 +392,8 @@ func (s *Server) checkAndDoTopoChange(seq int) bool {
 }
 
 func (s *Server) processAction(e interface{}) {
+	// 会处理两种事件, proxy status 变化
+	// 新 action 事件
 	if strings.Index(getEventPath(e), models.GetProxyPath(s.topo.ProductName)) == 0 {
 		info, err := s.topo.GetProxyInfo(s.info.Id)
 		if err != nil {
@@ -388,6 +412,7 @@ func (s *Server) processAction(e interface{}) {
 	}
 
 	//re-watch
+	// 这里返回的nodes是纯数字的?
 	nodes := s.rewatchNodes()
 
 	seqs, err := models.ExtraSeqList(nodes)
@@ -400,6 +425,7 @@ func (s *Server) processAction(e interface{}) {
 	}
 
 	//get last pos
+	// 排过序的, 找第一个大于的index
 	index := -1
 	for i, seq := range seqs {
 		if s.lastActionSeq < seq {
@@ -418,9 +444,11 @@ func (s *Server) processAction(e interface{}) {
 		if err != nil {
 			log.PanicErrorf(err, "get action failed")
 		}
+		// 应答过了
 		if exist {
 			continue
 		}
+		// 没有应答过
 		if s.checkAndDoTopoChange(seq) {
 			s.responseAction(int64(seq))
 		}
@@ -437,6 +465,7 @@ func (s *Server) loopEvents() {
 	for s.info.State == models.PROXY_STATE_ONLINE {
 		select {
 		// offline 事件
+		// 事件源是?
 		case <-s.kill:
 			log.Infof("mark offline, proxy is killed: %s", s.info.Id)
 			s.markOffline()

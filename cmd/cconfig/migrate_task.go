@@ -104,6 +104,7 @@ func (t *MigrateTask) migrateSingleSlot(slotId int, to int) error {
 	}
 
 	// modify slot status
+	// 设置zk信息
 	if err := s.SetMigrateStatus(t.zkConn, from, to); err != nil {
 		log.ErrorErrorf(err, "set migrate status failed")
 		return err
@@ -180,6 +181,7 @@ func (task *MigrateTask) Migrate(slot *models.Slot, fromGroup, toGroup int, onPr
 
 	defer c.Close()
 
+	// c 是 fromMaster 的连接
 	_, remain, err := utils.SlotsMgrtTagSlot(c, slot.Id, toMaster.Addr)
 	if err != nil {
 		return err

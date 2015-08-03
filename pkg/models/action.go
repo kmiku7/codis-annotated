@@ -36,10 +36,14 @@ const (
 )
 
 type Action struct {
+	// 操作类型
 	Type      ActionType  `json:"type"`
 	Desc      string      `json:"desc"`
+	// 这个字段是?
 	Target    interface{} `json:"target"`
 	Ts        string      `json:"ts"` // timestamp
+	// 保存的是一个json串, 可以解析为models.ProxyInfo结构体
+	// 见 proxy.go needResponse() 函数
 	Receivers []string    `json:"receivers"`
 }
 
@@ -72,6 +76,7 @@ func GetActionObject(zkConn zkhelper.Conn, productName string, seq int64, act in
 		return errors.Trace(err)
 	}
 
+	// act.Target 设置了具体的结构体, 反序列化的 Hint
 	if err := json.Unmarshal(data, act); err != nil {
 		return errors.Trace(err)
 	}

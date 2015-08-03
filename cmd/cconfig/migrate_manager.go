@@ -59,6 +59,7 @@ func (m *MigrateManager) mayRecover() error {
 }
 
 //add a new task to zk
+// 持久化到 zk 的顺序节点
 func (m *MigrateManager) PostTask(info *MigrateTaskInfo) {
 	b, _ := json.Marshal(info)
 	p, _ := safeZkConn.Create(getMigrateTasksPath(m.productName)+"/", b, zk.FlagSequence, zkhelper.DefaultFileACLs())
@@ -77,6 +78,7 @@ func (m *MigrateManager) loop() error {
 		if err != nil {
 			log.ErrorErrorf(err, "pre migrate check failed")
 		}
+		// block?? 然后还有 sleep??
 		err = t.run()
 		if err != nil {
 			log.ErrorErrorf(err, "migrate failed")

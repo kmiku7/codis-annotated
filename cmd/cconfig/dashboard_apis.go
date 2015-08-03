@@ -131,6 +131,7 @@ type migrateTaskForm struct {
 }
 
 func apiDoMigrate(form migrateTaskForm) (int, string) {
+	// range migrate 拆分成 item migrate
 	for i := form.From; i <= form.To; i++ {
 		task := MigrateTaskInfo{
 			SlotId:     i,

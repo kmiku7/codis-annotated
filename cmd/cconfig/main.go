@@ -143,11 +143,13 @@ func main() {
 	}
 
 	// load global vars
+	// 解析配置
 	globalEnv = LoadCodisEnv(config)
 
 	cmd := args["<command>"].(string)
 	cmdArgs := args["<args>"].([]string)
 
+	// 这是?
 	go http.ListenAndServe(":10086", nil)
 	err = runCommand(cmd, cmdArgs)
 	if err != nil {

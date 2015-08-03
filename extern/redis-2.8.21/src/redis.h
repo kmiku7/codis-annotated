@@ -1433,6 +1433,7 @@ void pfcountCommand(redisClient *c);
 void pfmergeCommand(redisClient *c);
 void pfdebugCommand(redisClient *c);
 void latencyCommand(redisClient *c);
+// 新加的指令
 void slotsinfoCommand(redisClient *c);
 void slotsdelCommand(redisClient *c);
 void slotsmgrtslotCommand(redisClient *c);

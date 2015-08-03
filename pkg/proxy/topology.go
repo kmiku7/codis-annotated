@@ -15,6 +15,7 @@ import (
 	"github.com/wandoulabs/zkhelper"
 )
 
+// 这个接口用途是？
 type TopoUpdate interface {
 	OnGroupChange(groupId int)
 	OnSlotChange(slotId int)
@@ -64,6 +65,7 @@ func (top *Topology) GetSlotByIndex(i int) (*models.Slot, *models.ServerGroup, e
 func NewTopo(ProductName string, zkAddr string, f ZkFactory, provider string, zkSessionTimeout int) *Topology {
 	t := &Topology{zkAddr: zkAddr, ProductName: ProductName, fact: f, provider: provider, zkSessionTimeout: zkSessionTimeout}
 	if t.fact == nil {
+		// 初始化阶段, 这里根据provider字段填充 fact method 字段
 		switch t.provider {
 		case "etcd":
 			t.fact = zkhelper.NewEtcdConn
@@ -149,6 +151,9 @@ func (top *Topology) DoResponse(seq int, pi *models.ProxyInfo) error {
 	return err
 }
 
+// loop 在哪?
+// 事件触发后吗, 需要重新监听?
+// 这个区间内的事件怎么办?
 func (top *Topology) doWatch(evtch <-chan topo.Event, evtbus chan interface{}) {
 	e := <-evtch
 	if e.State == topo.StateExpired || e.Type == topo.EventNotWatching {

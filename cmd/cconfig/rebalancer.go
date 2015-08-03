@@ -15,9 +15,12 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// 保存的一个 group 的信息
 type NodeInfo struct {
 	GroupId   int
+	// 存储的slots
 	CurSlots  []int
+	// 机器(master)的最大内存配置
 	MaxMemory int64
 }
 
@@ -27,6 +30,7 @@ func getLivingNodeInfos(zkConn zkhelper.Conn) ([]*NodeInfo, error) {
 		return nil, errors.Trace(err)
 	}
 	slots, err := models.Slots(zkConn, globalEnv.ProductName())
+	// slotMap[group-id] = slots-id
 	slotMap := make(map[int][]int)
 	for _, slot := range slots {
 		if slot.State.Status == models.SLOT_STATUS_ONLINE {
@@ -92,6 +96,7 @@ func getQuotaMap(zkConn zkhelper.Conn) (map[int]int, error) {
 	// round up
 	if totalQuota < models.DEFAULT_SLOT_NUM {
 		for k, _ := range ret {
+			// 这么个加法什么意思?
 			ret[k] += models.DEFAULT_SLOT_NUM - totalQuota
 			break
 		}
@@ -101,16 +106,23 @@ func getQuotaMap(zkConn zkhelper.Conn) (map[int]int, error) {
 }
 
 // experimental simple auto rebalance :)
+// 实验功能, 还未在生产环境使用过(?)
+// 怎么做的? 一台机器可能存储了多个slots, 怎么知道每个slots的内存使用然后进行迁移?
+// 	难道这里假设所有 slots 内存占用相同??
+// 请看codis项目给redis添加的指令
+// 使用条件是所有 slot 都处于 online 状态.
 func Rebalance() error {
 	targetQuota, err := getQuotaMap(safeZkConn)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// 这个结果在 getQuotaMap() 里调用一次了。
 	livingNodes, err := getLivingNodeInfos(safeZkConn)
 	if err != nil {
 		return errors.Trace(err)
 	}
 	log.Infof("start rebalance")
+	// 这个 loop 问题很大啊!!!
 	for _, node := range livingNodes {
 		for len(node.CurSlots) > targetQuota[node.GroupId] {
 			for _, dest := range livingNodes {

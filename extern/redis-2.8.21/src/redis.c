@@ -275,6 +275,7 @@ struct redisCommand redisCommandTable[] = {
     {"pfmerge",pfmergeCommand,-2,"wm",0,NULL,1,-1,1,0,0},
     {"pfdebug",pfdebugCommand,-3,"w",0,NULL,0,0,0,0,0},
     {"latency",latencyCommand,-2,"arslt",0,NULL,0,0,0,0,0},
+	// 新加指令的属性信息
     {"slotsinfo",slotsinfoCommand,-1,"rF",0,NULL,0,0,0,0,0},
     {"slotsdel",slotsdelCommand,-2,"w",0,NULL,1,-1,1,0,0},
     {"slotsmgrtslot",slotsmgrtslotCommand,5,"aw",0,NULL,0,0,0,0,0},

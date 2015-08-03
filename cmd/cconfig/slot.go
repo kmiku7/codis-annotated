@@ -175,6 +175,7 @@ func runSlotMigrate(fromSlotId, toSlotId int, newGroupId int, delay int) error {
 	return nil
 }
 
+// 这个 delay 到底什么用?
 func runRebalance(delay int) error {
 	var v interface{}
 	err := callApi(METHOD_POST, "/api/rebalance", nil, &v)
