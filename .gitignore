@@ -15,3 +15,5 @@ _workspace
 /deploy.tar
 
 makefile
+
+.DS_Store

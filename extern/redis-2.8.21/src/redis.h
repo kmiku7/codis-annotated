@@ -435,7 +435,9 @@ typedef struct redisDb {
     dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP) */
     dict *ready_keys;           /* Blocked keys that received a PUSH */
     dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+    // 按slot组织key
     dict *hash_slots[HASH_SLOTS_SIZE];
+    // 按tag组织key
     struct zskiplist *tagged_keys;
     int id;
     long long avg_ttl;          /* Average TTL, just for stats */
@@ -644,6 +646,9 @@ struct redisServer {
     list *slaves, *monitors;    /* List of slaves and MONITORs */
     redisClient *current_client; /* Current client, only used on crash report */
     char neterr[ANET_ERR_LEN];   /* Error buffer for anet.c */
+    // 什么用途？
+    // 维护 长连接
+    // 如何检测超时、不可用呢？
     dict *slotsmgrt_cached_sockfds;
     uint64_t next_client_id;    /* Next client unique ID. Incremental. */
     /* RDB / AOF loading information */

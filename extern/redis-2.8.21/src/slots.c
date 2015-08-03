@@ -3,6 +3,7 @@
 extern void createDumpPayload(rio *payload, robj *o);
 extern int verifyDumpPayload(unsigned char *p, size_t len);
 
+// 找到tag的起始位置
 static void *
 slots_tag(const sds s, int *plen) {
     int i, j, n = sdslen(s);
@@ -21,6 +22,7 @@ slots_tag(const sds s, int *plen) {
     return s + i;
 }
 
+// 计算槽位号
 int
 slots_num(const sds s, uint32_t *pcrc, int *phastag) {
     int taglen;
@@ -51,6 +53,7 @@ parse_int(redisClient *c, robj *obj, int *p) {
     return 0;
 }
 
+// 字符串表示的是一个超时时间, 因此加了语义检查
 static int
 parse_timeout(redisClient *c, robj *obj, int *p) {
     int v;
@@ -65,6 +68,7 @@ parse_timeout(redisClient *c, robj *obj, int *p) {
     return 0;
 }
 
+// 加了语义检查， 不能超过取值范围
 static int
 parse_slot(redisClient *c, robj *obj, int *p) {
     int v;
@@ -125,6 +129,7 @@ slotsinfoCommand(redisClient *c) {
     int i;
     for (i = beg; i < end; i ++) {
         int s = dictSize(c->db->hash_slots[i]);
+        // 只返回非空的槽位
         if (s == 0) {
             continue;
         }
@@ -144,9 +149,11 @@ typedef struct {
     int fd;
     int db;
     int authorized;
+    // 记录最后一次的使用时间
     time_t lasttime;
 } slotsmgrt_sockfd;
 
+// 获取一个到迁移目标主机的连接对象
 static slotsmgrt_sockfd *
 slotsmgrt_get_sockfd(redisClient *c, sds host, sds port, int timeout) {
     sds name = sdsempty();
@@ -210,6 +217,7 @@ slotsmgrt_close_socket(sds host, sds port) {
     sdsfree(name);
 }
 
+// 按照超时时间进行清理
 void
 slotsmgrt_cleanup() {
     dictIterator *di = dictGetSafeIterator(server.slotsmgrt_cached_sockfds);
@@ -350,6 +358,7 @@ slotsmgrt(redisClient *c, sds host, sds port, slotsmgrt_sockfd *pfd, int db, int
     return 0;
 }
 
+// rewrite 是什么意思？
 static void
 slotsremove(redisClient *c, robj **keys, int n, int rewrite) {
     for (int i = 0; i < n; i ++) {

@@ -1219,7 +1219,8 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     run_with_period(100) {
         if (server.sentinel_mode) sentinelTimer();
     }
-
+  
+    // 周期性执行
     run_with_period(1000) {
         slotsmgrt_cleanup();
     }

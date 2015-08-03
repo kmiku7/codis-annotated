@@ -158,6 +158,7 @@ void migrateCommand(redisClient *c) {
             server.neterr);
         return;
     }
+    // 设置TCP_NODELAY， 第一个参数保存char*的err hint
     anetEnableTcpNoDelay(server.neterr,fd);
 
     if ((aeWait(fd,AE_WRITABLE,timeout) & AE_WRITABLE) == 0) {
