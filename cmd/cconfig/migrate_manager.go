@@ -62,6 +62,7 @@ func (m *MigrateManager) mayRecover() error {
 // 持久化到 zk 的顺序节点
 func (m *MigrateManager) PostTask(info *MigrateTaskInfo) {
 	b, _ := json.Marshal(info)
+	// 从这里可以看出, zk action node 命名方式就是整数序号, 没有字符串前缀之类的.
 	p, _ := safeZkConn.Create(getMigrateTasksPath(m.productName)+"/", b, zk.FlagSequence, zkhelper.DefaultFileACLs())
 	_, info.Id = path.Split(p)
 }
@@ -74,6 +75,7 @@ func (m *MigrateManager) loop() error {
 			continue
 		}
 		t := GetMigrateTask(*info)
+		// 迁移前的数据校验
 		err := t.preMigrateCheck()
 		if err != nil {
 			log.ErrorErrorf(err, "pre migrate check failed")

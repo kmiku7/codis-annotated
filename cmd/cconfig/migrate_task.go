@@ -59,9 +59,11 @@ func (t *MigrateTask) UpdateStatus(status string) {
 }
 
 func (t *MigrateTask) UpdateFinish() {
+	// 都删除了还设置啥finish啊
 	t.Status = MIGRATE_TASK_FINISHED
 	t.zkConn.Delete(getMigrateTasksPath(t.productName)+"/"+t.Id, -1)
 }
+// 迁移 slot:slotId 到 group:to.
 func (t *MigrateTask) migrateSingleSlot(slotId int, to int) error {
 	// set slot status
 	s, err := models.GetSlot(t.zkConn, t.productName, slotId)
@@ -74,9 +76,12 @@ func (t *MigrateTask) migrateSingleSlot(slotId int, to int) error {
 		return nil
 	}
 
+	// 如果是未迁移状态, s.GroupId是源group.
+	// 如果是迁移状态, s.GroupId是目标group, 此时MigrateStatus保存的源和目标group
 	from := s.GroupId
 	if s.State.Status == models.SLOT_STATUS_MIGRATE {
 		from = s.State.MigrateStatus.From
+		// assert(s.State.MigrateStatus.To == to)
 	}
 
 	// make sure from group & target group exists
@@ -133,6 +138,7 @@ func (t *MigrateTask) migrateSingleSlot(slotId int, to int) error {
 }
 
 func (t *MigrateTask) run() error {
+	// 看这两个log.Infof()就像阻塞的
 	log.Infof("migration start: %+v", t.MigrateTaskInfo)
 	to := t.NewGroupId
 	t.UpdateStatus(MIGRATE_TASK_MIGRATING)
