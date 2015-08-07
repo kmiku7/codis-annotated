@@ -44,6 +44,7 @@ func GetExecutorPath() string {
 
 type Strings []string
 
+// string数组比较??
 func (s1 Strings) Eq(s2 []string) bool {
 	if len(s1) != len(s2) {
 		return false

@@ -1,6 +1,8 @@
 // Copyright 2014 Wandoujia Inc. All Rights Reserved.
 // Licensed under the MIT (MIT-LICENSE.txt) license.
 
+// 提供了 redis 连接, 指令发送解析接口.
+
 package utils
 
 import (
@@ -13,6 +15,7 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/errors"
 )
 
+// 封装了redis连接和授权操作
 func DialToTimeout(addr string, passwd string, readTimeout, writeTimeout time.Duration) (redis.Conn, error) {
 	c, err := redis.DialTimeout("tcp", addr, time.Second, readTimeout, writeTimeout)
 	if err != nil {
@@ -31,6 +34,7 @@ func DialTo(addr string, passwd string) (redis.Conn, error) {
 	return DialToTimeout(addr, passwd, time.Second*5, time.Second*5)
 }
 
+// 短连接发送slotsinfo命令
 func SlotsInfo(addr, passwd string, fromSlot, toSlot int) (map[int]int, error) {
 	c, err := DialTo(addr, passwd)
 	if err != nil {

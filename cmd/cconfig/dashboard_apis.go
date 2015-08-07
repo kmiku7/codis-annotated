@@ -1,6 +1,8 @@
 // Copyright 2014 Wandoujia Inc. All Rights Reserved.
 // Licensed under the MIT (MIT-LICENSE.txt) license.
 
+
+// dashboard 的逻辑实现
 package main
 
 import (
@@ -146,6 +148,7 @@ func apiDoMigrate(form migrateTaskForm) (int, string) {
 	return jsonRetSucc()
 }
 
+// rebalance 任务是做为阻塞任务提交的, 因此提交时不应有其他任务在排队执行
 func apiRebalance(param martini.Params) (int, string) {
 	if len(globalMigrateManager.Tasks()) > 0 {
 		return 500, "there are migration tasks running, you should wait them done"
@@ -179,6 +182,7 @@ func apiGetServerGroup(param martini.Params) (int, string) {
 	return 200, string(b)
 }
 
+// 返回的时所有 迁移中/等待迁移 的slots列表， 及迁移中的执行信息
 func apiMigrateStatus() (int, string) {
 	migrateSlots, err := models.GetMigratingSlots(safeZkConn, globalEnv.ProductName())
 	if err != nil && !zkhelper.ZkErrorEqual(err, zk.ErrNoNode) {
@@ -472,6 +476,7 @@ func apiActionGC(r *http.Request) (int, string) {
 		}
 	}()
 
+	// 同时传 keep secs 的时候, keep 有更高的优先级.
 	var err error
 	if keep >= 0 {
 		err = models.ActionGC(safeZkConn, globalEnv.ProductName(), models.GC_TYPE_N, keep)
@@ -484,6 +489,7 @@ func apiActionGC(r *http.Request) (int, string) {
 	return jsonRetSucc()
 }
 
+// product 的全局锁
 func apiForceRemoveLocks() (int, string) {
 	err := models.ForceRemoveLock(safeZkConn, globalEnv.ProductName())
 	if err != nil {

@@ -19,8 +19,11 @@ import (
 type MigrateTaskInfo struct {
 	SlotId     int    `json:"slot_id"`
 	NewGroupId int    `json:"new_group"`
+	// 按 key 迁移, 这个参数制定迁移每个key之间的延迟时间
 	Delay      int    `json:"delay"`
+	// 任务发起时间
 	CreateAt   string `json:"create_at"`
+	// 迁移百分比(?)
 	Percent    int    `json:"percent"`
 	Status     string `json:"status"`
 	Id         string `json:"-"`
@@ -41,6 +44,7 @@ type MigrateTask struct {
 	MigrateTaskInfo
 	zkConn       zkhelper.Conn
 	productName  string
+	// 迁移进度信号
 	progressChan chan SlotMigrateProgress
 }
 
@@ -52,6 +56,7 @@ func GetMigrateTask(info MigrateTaskInfo) *MigrateTask {
 	}
 }
 
+// 这个Status是处理阶段, 不是进度(?)
 func (t *MigrateTask) UpdateStatus(status string) {
 	t.Status = status
 	b, _ := json.Marshal(t.MigrateTaskInfo)
@@ -108,13 +113,16 @@ func (t *MigrateTask) migrateSingleSlot(slotId int, to int) error {
 		return nil
 	}
 
-	// modify slot status
-	// 设置zk信息
+	// <del>modify slot status</del>
+	// <del>设置zk信息</del>
+	// 注意这个
+	// 这里是阻塞的, 如果成功则表示迁移信息同步到各个proxy里了
 	if err := s.SetMigrateStatus(t.zkConn, from, to); err != nil {
 		log.ErrorErrorf(err, "set migrate status failed")
 		return err
 	}
 
+	// 阻塞的
 	err = t.Migrate(s, from, to, func(p SlotMigrateProgress) {
 		// on migrate slot progress
 		if p.Remain%5000 == 0 {
@@ -213,6 +221,7 @@ func (task *MigrateTask) Migrate(slot *models.Slot, fromGroup, toGroup int, onPr
 	return nil
 }
 
+// 约束条件检查
 func (t *MigrateTask) preMigrateCheck() error {
 	slots, err := models.GetMigratingSlots(safeZkConn, t.productName)
 

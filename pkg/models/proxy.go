@@ -1,6 +1,8 @@
 // Copyright 2014 Wandoujia Inc. All Rights Reserved.
 // Licensed under the MIT (MIT-LICENSE.txt) license.
 
+// 封装了对http接口调用和zk节点信息读取, 以及字段提取.
+
 package models
 
 import (
@@ -139,6 +141,7 @@ func ProxyList(zkConn zkhelper.Conn, productName string, filter func(*ProxyInfo)
 	return ret, nil
 }
 
+// 这个 true/false 什么用？
 func GetFenceProxyMap(zkConn zkhelper.Conn, productName string) (map[string]bool, error) {
 	children, _, err := zkConn.Children(GetProxyFencePath(productName))
 	if err != nil {
@@ -201,6 +204,9 @@ func SetProxyStatus(zkConn zkhelper.Conn, productName string, proxyName string, 
 			} else if err != nil {
 				return errors.Trace(err)
 			}
+			// GetW()我的理解是返回当前状态，然后监控状态变化。
+			// 如果zkConn.Set()设置后proxy立刻反应并同步状态了, GetW可能永远监控不到状态的变化了
+			// 然后就会照成死锁.
 			<-c
 			info, err := GetProxyInfo(zkConn, productName, proxyName)
 			log.Info("mark_offline, check proxy status:", proxyName, info, err)

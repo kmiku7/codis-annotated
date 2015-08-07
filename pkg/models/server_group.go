@@ -164,6 +164,7 @@ func (self *ServerGroup) Remove(zkConn zkhelper.Conn) error {
 	err = zkhelper.DeleteRecursive(zkConn, zkPath, -1)
 
 	// we know that there's no slots affected, so this action doesn't need proxy confirm
+	// 直接下发指令而不等待
 	err = NewAction(zkConn, self.ProductName, ACTION_TYPE_SERVER_GROUP_REMOVE, self, "", false)
 	return errors.Trace(err)
 }

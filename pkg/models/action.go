@@ -55,10 +55,12 @@ func GetActionResponsePath(productName string) string {
 	return path.Join(path.Dir(GetWatchActionPath(productName)), "ActionResponse")
 }
 
+// 看接下来这两和函数的区别...
 func GetActionWithSeq(zkConn zkhelper.Conn, productName string, seq int64, provider string) (*Action, error) {
 	var act Action
 	// Seq2Str:
 	//	fmt.Sprintf("%0.10d", seq)
+	// 直接拼出路径
 	data, _, err := zkConn.Get(path.Join(GetWatchActionPath(productName), zkConn.Seq2Str(seq)))
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -86,6 +88,7 @@ func GetActionObject(zkConn zkhelper.Conn, productName string, seq int64, act in
 
 var ErrReceiverTimeout = errors.New("receiver timeout")
 
+// 等待proxies列表的所有proxy都有返回值.
 func WaitForReceiverWithTimeout(zkConn zkhelper.Conn, productName string, actionZkPath string, proxies []ProxyInfo, timeoutInMs int) error {
 	if len(proxies) == 0 {
 		return nil
@@ -97,6 +100,7 @@ func WaitForReceiverWithTimeout(zkConn zkhelper.Conn, productName string, action
 		proxyIds[p.Id] = true
 	}
 	// check every 500ms
+	// 有一个proxy列表, 不断刷新resp-node children, 然后删除列表中的节点, 直到列表为空或超时.
 	for times < timeoutInMs/500{
 		if times >= 6 && (times*500)%1000 == 0 {
 			log.Warnf("abnormal waiting time for receivers: %s %v", actionZkPath, proxyIds)
@@ -127,6 +131,7 @@ func WaitForReceiverWithTimeout(zkConn zkhelper.Conn, productName string, action
 	return ErrReceiverTimeout
 }
 
+// 只能应用据children节点纯数字结构的(?)
 func GetActionSeqList(zkConn zkhelper.Conn, productName string) ([]int, error) {
 	nodes, _, err := zkConn.Children(GetWatchActionPath(productName))
 	if err != nil {
@@ -148,6 +153,8 @@ func ExtraSeqList(nodes []string) ([]int, error) {
 	return seqs, nil
 }
 
+// -n
+//	实际是保留500+N个
 func ActionGC(zkConn zkhelper.Conn, productName string, gcType int, keep int) error {
 	prefix := GetWatchActionPath(productName)
 	respPrefix := GetActionResponsePath(productName)
@@ -252,6 +259,7 @@ func NewActionWithTimeout(zkConn zkhelper.Conn, productName string, actionType A
 	if needConfirm {
 		// do fencing here, make sure 'offline' proxies are really offline
 		// now we only check whether the proxy lists are match
+		// 难道时说, proxy启动后创建一个 proxy 临时节点, 和一个fence 永久节点(?)
 		fenceProxies, err := GetFenceProxyMap(zkConn, productName)
 		if err != nil {
 			return errors.Trace(err)
@@ -292,6 +300,14 @@ func NewActionWithTimeout(zkConn zkhelper.Conn, productName string, actionType A
 		return errors.Trace(err)
 	}
 
+	// 整体的流程就是
+	//		先在action_response/下建一个seq节点,然后获取唯一的seq号码uid, 然后把该seq节点删除
+	//		创建目录节点action_response/uid
+	// 		然后创建action/uid节点并写入action信息
+	//		proxy监控action/节点获取最新的action并处理回应
+	//		如果需要回应信息, 则写入到action_response/uid/proxy-id节点
+
+
 	//create response node, etcd do not support create in order directory
 	//get path first
 	actionRespPath, err := zkConn.Create(respPath+"/", b, int32(zk.FlagSequence), zkhelper.DefaultFileACLs())
@@ -327,6 +343,7 @@ func NewActionWithTimeout(zkConn zkhelper.Conn, productName string, actionType A
 }
 
 func ForceRemoveLock(zkConn zkhelper.Conn, productName string) error {
+	// /zk/codis/db_%s/LOCK/lock-XXXXXXXXXXXXXX
 	lockPath := fmt.Sprintf("/zk/codis/db_%s/LOCK", productName)
 	children, _, err := zkConn.Children(lockPath)
 	if err != nil && !zkhelper.ZkErrorEqual(err, zk.ErrNoNode) {
@@ -345,6 +362,7 @@ func ForceRemoveLock(zkConn zkhelper.Conn, productName string) error {
 	return nil
 }
 
+// 只保留 online proxy 的 fence 节点。
 func ForceRemoveDeadFence(zkConn zkhelper.Conn, productName string) error {
 	proxies, err := ProxyList(zkConn, productName, func(p *ProxyInfo) bool {
 		return p.State == PROXY_STATE_ONLINE

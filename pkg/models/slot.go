@@ -81,6 +81,7 @@ func GetSlotBasePath(productName string) string {
 	return fmt.Sprintf("/zk/codis/db_%s/slots", productName)
 }
 
+// 获取单个slot的信息
 func GetSlot(zkConn zkhelper.Conn, productName string, id int) (*Slot, error) {
 	zkPath := GetSlotPath(productName, id)
 	data, _, err := zkConn.Get(zkPath)
@@ -148,6 +149,10 @@ func NoGroupSlots(zkConn zkhelper.Conn, productName string) ([]*Slot, error) {
 }
 
 func SetSlots(zkConn zkhelper.Conn, productName string, slots []*Slot, groupId int, status SlotStatus) error {
+	// 这个check什么意思?
+	// 这个函数批量设置slots的group和status的, 也就是说只有online/offline的slot才可以更新？
+	// 迁移状态的不可以更新， 什么时候会用？
+	// 只有在create server group的时候创建一次.
 	if status != SLOT_STATUS_OFFLINE && status != SLOT_STATUS_ONLINE {
 		return errors.Errorf("invalid status")
 	}
@@ -187,6 +192,7 @@ func SetSlots(zkConn zkhelper.Conn, productName string, slots []*Slot, groupId i
 
 }
 
+// 同上, 只是指定slots的方式不同
 func SetSlotRange(zkConn zkhelper.Conn, productName string, fromSlot, toSlot, groupId int, status SlotStatus) error {
 	if status != SLOT_STATUS_OFFLINE && status != SLOT_STATUS_ONLINE {
 		return errors.Errorf("invalid status")
@@ -230,6 +236,8 @@ func SetSlotRange(zkConn zkhelper.Conn, productName string, fromSlot, toSlot, gr
 }
 
 // danger operation !
+// slots数是固定的, 所以这里直接覆盖写(?)
+// 好像时外层调用方检查slot是否存在并提供了force参数.
 func InitSlotSet(zkConn zkhelper.Conn, productName string, totalSlotNum int) error {
 	for i := 0; i < totalSlotNum; i++ {
 		slot := NewSlot(productName, i)
@@ -250,6 +258,9 @@ func (s *Slot) SetMigrateStatus(zkConn zkhelper.Conn, fromGroup, toGroup int) er
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// connection, product_name, action_type, target, desc, need_confirm
+	// 不是创建一个action节点, 而是下发执行并确认一个action
+	// err 表示 action 是否被正确执行了
 	err = NewAction(zkConn, s.ProductName, ACTION_TYPE_SLOT_PREMIGRATE, s, "", true)
 	if err != nil {
 		return errors.Trace(err)

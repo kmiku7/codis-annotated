@@ -80,6 +80,7 @@ func setLogLevel(level string) {
 	log.Infof("set log level to <%s>", level)
 }
 
+// golang异常数据写到stderr，so...
 func setCrashLog(file string) {
 	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

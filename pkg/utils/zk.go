@@ -13,11 +13,13 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// 重试次数是这里写死的
 const retryMaxOnOps = 10
 
 type ConnBuilder interface {
 	// Get a conn that will retry automatically when getting error caused by connection issues.
 	// If retry can not rebuild the connection, there will be a fetal error
+	//	这又拼写错误啊, 我也能pull request了, 哈哈哈~
 	GetSafeConn() zkhelper.Conn
 
 	// Get a conn that will return error caused by connection issues
@@ -25,6 +27,7 @@ type ConnBuilder interface {
 	GetUnsafeConn() zkhelper.Conn
 }
 
+// safeConn & unsafeConn 都是同一类型， 区别在哪？
 type connBuilder struct {
 	connection         zkhelper.Conn
 	builder            func() (zkhelper.Conn, error)
@@ -102,6 +105,7 @@ func (c *safeConn) Get(path string) (data []byte, stat zk.Stat, err error) {
 	return
 }
 
+// watch
 func (c *safeConn) GetW(path string) (data []byte, stat zk.Stat, watch <-chan zk.Event, err error) {
 	for i := 0; i <= retryMaxOnOps; i++ {
 		c.builder.lock.RLock()

@@ -83,6 +83,7 @@ func jsonRetSucc() (int, string) {
 	})
 }
 
+// 统计proxy qps的
 func getAllProxyOps() int64 {
 	proxies, err := models.ProxyList(unsafeZkConn, globalEnv.ProductName(), nil)
 	if err != nil {
@@ -248,6 +249,7 @@ func runDashboard(addr string, httpLogFile string) {
 			} else {
 				qps = 0
 			}
+			// woo~
 			atomic.StoreInt64(&proxiesSpeed, qps)
 		}
 	}()

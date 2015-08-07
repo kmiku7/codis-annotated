@@ -81,6 +81,7 @@ func (m *MigrateManager) loop() error {
 			log.ErrorErrorf(err, "pre migrate check failed")
 		}
 		// block?? 然后还有 sleep??
+		// 是的这里时block的.
 		err = t.run()
 		if err != nil {
 			log.ErrorErrorf(err, "migrate failed")
@@ -98,6 +99,7 @@ func (m *MigrateManager) NextTask() *MigrateTaskInfo {
 
 func (m *MigrateManager) Tasks() []MigrateTaskInfo {
 	res := Tasks{}
+	// 这里的返回的 children 也是有序的
 	tasks, _, _ := safeZkConn.Children(getMigrateTasksPath(m.productName))
 	for _, id := range tasks {
 		data, _, _ := safeZkConn.Get(getMigrateTasksPath(m.productName) + "/" + id)
@@ -111,7 +113,7 @@ func (m *MigrateManager) Tasks() []MigrateTaskInfo {
 }
 
 type Tasks []MigrateTaskInfo
-
+// Comparable interface
 func (t Tasks) Len() int {
 	return len(t)
 }
