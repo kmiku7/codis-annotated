@@ -18,7 +18,9 @@ const MaxSlotNum = models.DEFAULT_SLOT_NUM
 type Router struct {
 	mu sync.Mutex
 
+	// 公用的passwd, 不可能有独立的
 	auth string
+	// key是主机名
 	pool map[string]*SharedBackendConn
 
 	slots [MaxSlotNum]*Slot

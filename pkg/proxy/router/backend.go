@@ -13,8 +13,10 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/log"
 )
 
+// 如何实现的读写分离及 Request & Response 匹配的？
 type BackendConn struct {
 	addr string
+	// 保存的 passwd？ 但是不可能配出来不同的 server 不同的 passwd 的
 	auth string
 	// Do is intended for initialization that must be run exactly once.
 	stop sync.Once
@@ -27,6 +29,7 @@ func NewBackendConn(addr, auth string) *BackendConn {
 		addr: addr, auth: auth,
 		input: make(chan *Request, 1024),
 	}
+	// 每个 backend 有一个对应的goroutine
 	go bc.Run()
 	return bc
 }
@@ -69,6 +72,7 @@ func (bc *BackendConn) PushBack(r *Request) {
 	bc.input <- r
 }
 
+// 这个是?
 func (bc *BackendConn) KeepAlive() bool {
 	if len(bc.input) != 0 {
 		return false
@@ -92,6 +96,7 @@ func (bc *BackendConn) KeepAlive() bool {
 var ErrFailedRequest = errors.New("discard failed request")
 
 func (bc *BackendConn) loopWriter() error {
+	// do-while 的形式
 	r, ok := <-bc.input
 	if ok {
 		c, tasks, err := bc.newBackendReader()
@@ -107,7 +112,9 @@ func (bc *BackendConn) loopWriter() error {
 		}
 		// 这里有个for-loop ...
 		for ok {
+			// 这里的 flush 控制.
 			var flush = len(bc.input) == 0
+			// 没有失败过
 			if bc.canForward(r) {
 				if err := p.Encode(r.Resp, flush); err != nil {
 					return bc.setResponse(r, nil, err)
@@ -191,14 +198,17 @@ func (bc *BackendConn) canForward(r *Request) bool {
 }
 
 // 释放锁
+// !!!
 func (bc *BackendConn) setResponse(r *Request, resp *redis.Resp, err error) error {
 	r.Response.Resp, r.Response.Err = resp, err
 	if err != nil && r.Failed != nil {
 		r.Failed.Set(true)
 	}
+	// 等待命令结果的
 	if r.Wait != nil {
 		r.Wait.Done()
 	}
+	// 释放slot空间的, 迁移等问题
 	if r.slot != nil {
 		r.slot.Done()
 	}

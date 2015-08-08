@@ -77,6 +77,7 @@ func (s *Session) IsClosed() bool {
 }
 
 // 每个 client session 的伺服, goroutine
+// 请求转发给后端都是在loopReader里处理的, loopWriter只是等待指令结果然后写回客户端
 func (s *Session) Serve(d Dispatcher, maxPipeline int) {
 	var errlist errors.ErrorList
 	defer func() {
@@ -297,6 +298,7 @@ func (s *Session) handleRequestMGet(r *Request, d Dispatcher) (*Request, error) 
 			return nil, err
 		}
 	}
+	// 这里的closure
 	r.Coalesce = func() error {
 		var array = make([]*redis.Resp, len(sub))
 		for i, x := range sub {

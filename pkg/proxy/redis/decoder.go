@@ -41,6 +41,7 @@ func (d *Decoder) Decode() (*Resp, error) {
 	if d.Err != nil {
 		return nil, d.Err
 	}
+	// 0 指的解析层次
 	r, err := d.decodeResp(0)
 	if err != nil {
 		d.Err = err
@@ -134,6 +135,7 @@ func (d *Decoder) decodeBulkBytes() ([]byte, error) {
 	} else if n == -1 {
 		return nil, nil
 	}
+	// 确保规则合法, content长度一定是n, 且后跟\r\n
 	b := make([]byte, n+2)
 	if _, err := io.ReadFull(d.Reader, b); err != nil {
 		return nil, errors.Trace(err)

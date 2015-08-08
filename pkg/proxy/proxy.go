@@ -122,6 +122,7 @@ func (s *Server) handleConns() {
 	// accept & create session 为何要做一层 channel 交互?
 	// 感觉没有必要啊, 直接 new object & go object.serve() 不就结了 
 	// 这里还是起goroutine, 看起来accpet快了, 这里go的不够快还是会堵.
+	// 可以利用并行性, 提升处理速度
 	go func() {
 		for c := range ch {
 			// 该函数原型
@@ -192,6 +193,7 @@ func (s *Server) register() {
 	// 创建节点对应的fence目录, demo:
 	//	/zk/codis/db_test/fence/workstation-centos-7.kmiku7.com:19000
 	// 什么用途?
+	// proxy()创建的临时节点, fence()创建的永久节点, 可以监控出proxy是否处于正常状态, 有没有hang住, 有没有正常退出.
 	if _, err := s.topo.CreateProxyFenceNode(&s.info); err != nil {
 		log.PanicErrorf(err, "create fence node failed")
 	}

@@ -85,6 +85,8 @@ func (s *Slot) prepare(r *Request, key []byte) (*SharedBackendConn, error) {
 		return nil, ErrSlotIsNotReady
 	}
 	// 迁移过程中的处理流程
+	// 这一这里的逻辑, 不过需不需要迁移, 都要做else里的步骤
+	// slotsmgrt() 是一个阻塞操作
 	if err := s.slotsmgrt(r, key); err != nil {
 		log.Warnf("slot-%04d migrate from = %s to %s failed: key = %s, error = %s",
 			s.id, s.migrate.from, s.backend.addr, key, err)

@@ -10,6 +10,9 @@ import (
 	"github.com/wandoulabs/codis/pkg/utils/errors"
 )
 
+// 封装关系
+// 循环引用了
+// Conn <- Decoder <- connReader <- Conn
 type Conn struct {
 	Sock net.Conn
 
@@ -17,6 +20,8 @@ type Conn struct {
 	ReaderTimeout time.Duration
 	WriterTimeout time.Duration
 
+	// 这两个是指针, 何时赋值初始化, 对Sock的包装,
+	// 默认 bufsize 为64k.
 	Reader *Decoder
 	Writer *Encoder
 }
@@ -50,6 +55,8 @@ type connReader struct {
 }
 
 func (r *connReader) Read(b []byte) (int, error) {
+	// 这两个 if-else 什么鬼?
+	// 如果有超时时间则设置, 如果没有且hasDeadline == true, 则增加一个取消超时的操作
 	if timeout := r.ReaderTimeout; timeout != 0 {
 		if err := r.Sock.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 			return 0, errors.Trace(err)

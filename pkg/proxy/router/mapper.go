@@ -59,6 +59,7 @@ func getOpStr(resp *redis.Resp) (string, error) {
 		return "", ErrBadRespType
 	}
 	// 确保每个元素都是 string 类型
+	// 标准没有这样的规定吧
 	for _, r := range resp.Array {
 		if r.IsBulkBytes() {
 			continue
